@@ -1,6 +1,6 @@
 # Dynamic HTTP Server (dynhttpsrv)
 
-A Go HTTP server for which you can programatically:
-- Cancel it through the context
+A Go HTTP server which you can programatically:
 - Start and stop multiple servers on various addresses
-- Add/Remove endpoints
+- Cancel it through the provided context
+- Add/Remove endpoints while serving with no glitch
