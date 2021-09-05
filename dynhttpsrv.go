@@ -11,25 +11,25 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type SwappableRouter struct {
+type swappableRouter struct {
 	mu     *sync.Mutex
 	router *mux.Router
 }
 
-func CreateSwappableRouter(router *mux.Router) *SwappableRouter {
-	return &SwappableRouter{
+func createSwappableRouter(router *mux.Router) *swappableRouter {
+	return &swappableRouter{
 		mu:     &sync.Mutex{},
 		router: router,
 	}
 }
 
-func (sr *SwappableRouter) Swap(newRouter *mux.Router) {
+func (sr *swappableRouter) swap(newRouter *mux.Router) {
 	sr.mu.Lock()
 	sr.router = newRouter
 	sr.mu.Unlock()
 }
 
-func (sr SwappableRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (sr swappableRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sr.mu.Lock()
 	router := sr.router
 	sr.mu.Unlock()
@@ -43,13 +43,13 @@ type Endpoint struct {
 }
 
 type DynHttpSrv struct {
-	Router    *SwappableRouter
+	Router    *swappableRouter
 	Endpoints []*Endpoint
 }
 
 // New creates a new dynamic HTTP server listening on address and obeying cancelling through ctx
 func New(ctx context.Context, addr string) *DynHttpSrv {
-	srvMux := CreateSwappableRouter(mux.NewRouter().StrictSlash(true))
+	srvMux := createSwappableRouter(mux.NewRouter().StrictSlash(true))
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: srvMux,
@@ -90,7 +90,7 @@ func (dhs *DynHttpSrv) AddEndpoint(endpoint *Endpoint) error {
 		return errors.New("endpoint already added")
 	}
 	dhs.Endpoints = append(dhs.Endpoints, endpoint)
-	dhs.ReloadEndpoints()
+	dhs.reloadEndpoints()
 	return nil
 }
 
@@ -106,11 +106,11 @@ func (dhs *DynHttpSrv) DelEndpoint(endpoint *Endpoint) error {
 		return errors.New("endpoint not found")
 	}
 	dhs.Endpoints = append(dhs.Endpoints[0:pos], dhs.Endpoints[pos+1:]...)
-	dhs.ReloadEndpoints()
+	dhs.reloadEndpoints()
 	return nil
 }
 
-func (dhs *DynHttpSrv) ReloadEndpoints() {
+func (dhs *DynHttpSrv) reloadEndpoints() {
 	newRouter := mux.NewRouter().StrictSlash(true)
 	for _, endpoint := range dhs.Endpoints {
 		if endpoint.Paths == nil {
@@ -129,5 +129,5 @@ func (dhs *DynHttpSrv) ReloadEndpoints() {
 			}
 		}
 	}
-	dhs.Router.Swap(newRouter)
+	dhs.Router.swap(newRouter)
 }
